@@ -1,0 +1,7 @@
+.env
+*.log
+
+# Opciones configuradas:
+# ----------------------
+# .env -> contraseñas de MySQL de la TAREA 3; .env.example sí se sube
+# *.log -> registros de las pruebas; pueden llevar datos de la VM
