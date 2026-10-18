@@ -1,0 +1,85 @@
+services:
+  mysql-server:
+    image: mysql:8.4.11
+    container_name: zabbix-mysql
+    restart: unless-stopped
+    command:
+      - mysqld
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_bin
+      - --log_bin_trust_function_creators=1
+      - --performance-schema=OFF
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-zabbix}
+      MYSQL_USER: ${MYSQL_USER:-zabbix}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?falta MYSQL_PASSWORD en el archivo .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?falta MYSQL_ROOT_PASSWORD en el archivo .env}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  zabbix-server:
+    image: zabbix/zabbix-server-mysql:ubuntu-7.4.15
+    container_name: zabbix-server
+    restart: unless-stopped
+    depends_on:
+      mysql-server:
+        condition: service_healthy
+    environment:
+      DB_SERVER_HOST: mysql-server
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-zabbix}
+      MYSQL_USER: ${MYSQL_USER:-zabbix}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "10051:10051"
+
+  zabbix-web:
+    image: zabbix/zabbix-web-nginx-mysql:ubuntu-7.4.15
+    container_name: zabbix-web
+    restart: unless-stopped
+    depends_on:
+      mysql-server:
+        condition: service_healthy
+      zabbix-server:
+        condition: service_started
+    environment:
+      ZBX_SERVER_HOST: zabbix-server
+      DB_SERVER_HOST: mysql-server
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-zabbix}
+      MYSQL_USER: ${MYSQL_USER:-zabbix}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      PHP_TZ: ${TZ:-Europe/Madrid}
+    ports:
+      - "8080:8080"
+
+volumes:
+  mysql-data:
+
+# Opciones configuradas:
+# ----------------------
+# image: mysql:8.4.11 -> imagen oficial de MySQL con versión fija
+# container_name -> nombre fijo para docker exec y el script de comprobación
+# restart: unless-stopped -> vuelve a arrancar salvo que lo pare yo
+# utf8mb4 y utf8mb4_bin -> juego de caracteres e intercalación que pide Zabbix
+# --log_bin_trust_function_creators=1 -> el usuario zabbix puede crear funciones
+# --performance-schema=OFF -> apaga estadísticas que Zabbix no usa; ahorra memoria
+# ${MYSQL_DATABASE:-zabbix} -> valor del .env o zabbix si no está
+# ${MYSQL_PASSWORD:?...} -> sin la variable Compose no arranca y da el mensaje
+# mysql-data:/var/lib/mysql -> volumen con nombre; sobrevive a docker compose down
+# healthcheck -> mysqladmin ping cada 10 s; 12 fallos = unhealthy
+# start_period: 30s -> margen para el primer arranque
+# condition: service_healthy -> server y frontend esperan a que MySQL esté healthy
+# DB_SERVER_HOST: mysql-server -> buscan MySQL por el nombre del servicio
+# MYSQL_ROOT_PASSWORD en el server -> crea el usuario y las tablas la primera vez
+# "10051:10051" -> puerto del server para los datos activos de los agentes
+# ZBX_SERVER_HOST: zabbix-server -> el frontend pregunta al server por su nombre
+# PHP_TZ -> zona horaria del frontend; sin ella sale UTC
+# "8080:8080" -> frontend en http://192.168.60.62:8080
+# volumes: mysql-data -> Compose lo llama alten-proyecto-02_mysql-data
+# sin networks -> red por defecto alten-proyecto-02_default con los tres
