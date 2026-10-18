@@ -1,0 +1,35 @@
+== Problem ==
+
+Subject:
+[Zabbix] {EVENT.NAME} en {HOST.NAME}
+
+Message:
+Problema: {EVENT.NAME}
+Host: {HOST.NAME} ({HOST.IP})
+Severidad: {EVENT.SEVERITY}
+Valor actual: {ITEM.LASTVALUE}
+Inicio: {EVENT.DATE} {EVENT.TIME}
+ID del evento: {EVENT.ID}
+
+== Problem recovery (solo en Email) ==
+
+Subject:
+[Zabbix] Resuelto: {EVENT.NAME} en {HOST.NAME}
+
+Message:
+Problema resuelto: {EVENT.NAME}
+Host: {HOST.NAME} ({HOST.IP})
+Duración: {EVENT.DURATION}
+Recuperado: {EVENT.RECOVERY.DATE} {EVENT.RECOVERY.TIME}
+ID del evento: {EVENT.ID}
+
+# Opciones configuradas:
+# ----------------------
+# == Problem == -> al abrirse un problema; email y webhook de Jira de la TAREA 8
+# == Problem recovery == -> al resolverse; solo email porque en Jira no quiero otro ticket
+# Subject y Message -> asunto y texto de cada plantilla
+# {EVENT.NAME} y {EVENT.SEVERITY} -> nombre y severidad del trigger
+# {HOST.NAME} ({HOST.IP}) -> el host y su IP; sé en qué VM pasa
+# {ITEM.LASTVALUE} -> último valor del item que abrió el problema
+# {EVENT.DATE}, {EVENT.TIME} y {EVENT.ID} -> cuándo empezó y número para buscarlo
+# {EVENT.DURATION} y {EVENT.RECOVERY.*} -> cuánto duró y cuándo se resolvió
